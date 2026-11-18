@@ -22,6 +22,6 @@ router.post('/', protect, createPost);
 router.get('/:id', getPost);
 router.put('/:id', protect, updatePost);
 router.delete('/:id', protect, deletePost);
-router.put('/:id/like', protect, likePost);
+router.post('/:id/like', protect, likePost);
 
 module.exports = router;

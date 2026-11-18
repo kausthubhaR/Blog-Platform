@@ -1,281 +1,201 @@
-require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
-// ── inline models (seed runs standalone, before npm install may finish) ──────
-const userSchema = new mongoose.Schema({
-  fullName:     { type: String, required: true, trim: true },
-  username:     { type: String, required: true, unique: true, lowercase: true, trim: true },
-  email:        { type: String, required: true, unique: true, lowercase: true },
-  password:     { type: String, required: true, minlength: 6 },
-  profileImage: { type: String, default: '' },
-  bio:          { type: String, default: '', maxlength: 300 },
-  createdAt:    { type: Date, default: Date.now },
-});
+const User = require('./models/User');
+const Post = require('./models/Post');
+const Comment = require('./models/Comment');
 
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-const postSchema = new mongoose.Schema(
-  {
-    title:         { type: String, required: true, trim: true },
-    description:   { type: String, required: true },
-    content:       { type: String, required: true },
-    featuredImage: { type: String, default: '' },
-    category:      {
-      type: String,
-      required: true,
-      enum: ['Technology', 'Programming', 'Artificial Intelligence', 'Web Development',
-             'Cybersecurity', 'Lifestyle', 'Education', 'Other'],
-    },
-    tags:     [{ type: String, lowercase: true, trim: true }],
-    author:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    likes:    [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    readTime: { type: Number, default: 1 },
-  },
-  { timestamps: true }
-);
-
-const commentSchema = new mongoose.Schema(
-  {
-    post:    { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
-    user:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    content: { type: String, required: true, trim: true },
-  },
-  { timestamps: true }
-);
-
-const User    = mongoose.model('User', userSchema);
-const Post    = mongoose.model('Post', postSchema);
-const Comment = mongoose.model('Comment', commentSchema);
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-function calcReadTime(content) {
-  const words = content.trim().split(/\s+/).length;
-  return Math.max(1, Math.ceil(words / 200));
-}
-
-// ── seed data ────────────────────────────────────────────────────────────────
-const userData = [
-  {
-    fullName:     'John Doe',
-    username:     'johndoe',
-    email:        'john@example.com',
-    password:     'password123',
-    bio:          'Full-stack developer and tech writer',
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john',
-  },
-  {
-    fullName:     'Jane Smith',
-    username:     'janesmith',
-    email:        'jane@example.com',
-    password:     'password123',
-    bio:          'AI researcher and blogger',
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jane',
-  },
-  {
-    fullName:     'Alex Johnson',
-    username:     'alexj',
-    email:        'alex@example.com',
-    password:     'password123',
-    bio:          'Cybersecurity expert',
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alex',
-  },
-];
-
-function buildPosts(users) {
-  const [john, jane, alex] = users;
-
-  return [
-    // ── John's posts ──────────────────────────────────────────────────────
-    {
-      title: 'The Rise of TypeScript: Why Every JavaScript Developer Should Switch',
-      description:
-        'TypeScript has taken the JavaScript ecosystem by storm. Discover why top teams are adopting it and how it can transform your development workflow.',
-      content: `TypeScript, the statically-typed superset of JavaScript developed by Microsoft, has seen explosive growth over the past few years. What started as a niche tool for large enterprise applications has now become a staple in modern web development, embraced by projects of all sizes.\n\nOne of TypeScript's greatest strengths is its ability to catch errors at compile time rather than runtime. When you're working in a large codebase with multiple developers, type annotations serve as living documentation — your IDE can warn you the moment you pass the wrong argument to a function or access a property that doesn't exist on an object. This drastically reduces the number of bugs that make it to production.\n\nBeyond error catching, TypeScript enhances the developer experience through intelligent autocomplete, refactoring support, and clearer code intent. Modern frameworks like Angular, Next.js, and NestJS ship with first-class TypeScript support. Even the React and Vue communities have largely embraced it. If you haven't made the switch yet, 2024 is the perfect time to start — the learning curve is gentler than you think, and the productivity gains are well worth the initial investment.`,
-      featuredImage: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800',
-      category: 'Programming',
-      tags: ['typescript', 'javascript', 'web development', 'programming'],
-      author: john._id,
-    },
-    {
-      title: 'Building Scalable REST APIs with Node.js and Express',
-      description:
-        'Learn how to architect and build production-ready REST APIs using Node.js, Express, and MongoDB — with best practices for security and performance.',
-      content: `Building a REST API is deceptively simple at first glance — a few routes, some middleware, and you're done. But as your application grows, so do the challenges: how do you handle authentication? Rate limiting? Input validation? Error handling in a consistent way? This guide walks you through creating a scalable Express API from the ground up.\n\nWe'll start with a clean project structure that separates concerns: controllers handle business logic, models define data schemas, routes map HTTP verbs to controller methods, and middleware handles cross-cutting concerns like auth and error handling. This layered approach keeps each file focused and your codebase easy to navigate as it grows.\n\nSecurity is non-negotiable in production APIs. We'll cover essential practices: using Helmet to set secure HTTP headers, express-rate-limit to prevent abuse, bcryptjs for password hashing, and JWTs for stateless authentication. We'll also look at input validation with express-validator to protect against malformed data before it ever touches your database. Following these patterns will give you a solid foundation you can build on with confidence.`,
-      featuredImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800',
-      category: 'Web Development',
-      tags: ['nodejs', 'express', 'rest api', 'backend', 'mongodb'],
-      author: john._id,
-    },
-    {
-      title: 'Docker for Developers: Containerise Your Apps in 30 Minutes',
-      description:
-        'A practical, hands-on guide to Docker that gets you from zero to running containerised applications — no prior experience required.',
-      content: `Docker has fundamentally changed how we build, ship, and run software. By packaging your application and its dependencies into a lightweight, portable container, you eliminate the classic "it works on my machine" problem and make deployments dramatically more predictable.\n\nAt its core, Docker works by creating containers from images — read-only snapshots that describe a filesystem and configuration. You define an image using a Dockerfile: a simple text file that lists the base image (e.g., node:18-alpine), copies your source code, installs dependencies, and specifies the command to run your app. Building and running that image takes just two commands: docker build and docker run.\n\nFor multi-service applications — say, a React frontend, a Node.js backend, and a MongoDB database — Docker Compose lets you define and start everything with a single docker compose up command. Each service gets its own container, they communicate over a private network, and you can spin the whole stack up or tear it down in seconds. This consistency between development and production environments is one of the most valuable things Docker offers to any modern engineering team.`,
-      featuredImage: 'https://images.unsplash.com/photo-1605745341112-85968b19335b?w=800',
-      category: 'Technology',
-      tags: ['docker', 'containers', 'devops', 'deployment'],
-      author: john._id,
-    },
-
-    // ── Jane's posts ──────────────────────────────────────────────────────
-    {
-      title: 'Understanding Large Language Models: A Gentle Introduction',
-      description:
-        'Demystifying LLMs — how transformer architectures, attention mechanisms, and training data combine to produce surprisingly capable AI systems.',
-      content: `Large Language Models (LLMs) like GPT-4, Claude, and Gemini have captured the world's imagination, but many people still find the underlying technology mysterious. At their heart, LLMs are neural networks trained on vast amounts of text to predict the next token in a sequence — a seemingly simple objective that gives rise to remarkable emergent capabilities.\n\nThe architectural breakthrough that made modern LLMs possible is the Transformer, introduced in the landmark "Attention Is All You Need" paper from Google in 2017. The key innovation is the self-attention mechanism, which allows the model to weigh the relevance of every other word in the input when processing each individual word. This parallelism makes training far more efficient than the recurrent networks that came before it, enabling models to scale to hundreds of billions of parameters.\n\nTraining an LLM happens in stages. First, the model is pre-trained on a large corpus of web text, books, and code using self-supervised learning — no labels are required, just the text itself. Then it's fine-tuned on curated datasets and refined through Reinforcement Learning from Human Feedback (RLHF) to make it helpful, harmless, and honest. Understanding this pipeline is essential for anyone looking to work with or build on top of these powerful models.`,
-      featuredImage: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=800',
-      category: 'Artificial Intelligence',
-      tags: ['llm', 'ai', 'machine learning', 'nlp', 'transformers'],
-      author: jane._id,
-    },
-    {
-      title: 'Prompt Engineering: The Art of Talking to AI',
-      description:
-        'Master the techniques that unlock the full potential of AI language models — from zero-shot prompting to chain-of-thought and retrieval-augmented generation.',
-      content: `Prompt engineering has emerged as a critical skill in the age of generative AI. The same underlying model can produce wildly different outputs depending on how you phrase your request — understanding why, and how to craft prompts that consistently deliver high-quality results, is both an art and a science.\n\nThe simplest and most powerful technique is adding context. Instead of asking "summarise this article," tell the model who you are, what you need, and how the output will be used: "You are a technical writer. Summarise the following article in three bullet points for a non-technical executive audience." This framing dramatically improves relevance and tone. Zero-shot prompting works for many tasks, but for complex reasoning problems, few-shot examples — providing two or three input-output pairs before your actual query — can dramatically improve accuracy.\n\nFor reasoning-heavy tasks, chain-of-thought prompting is transformative. By adding "Let's think step by step" or providing an example that shows the model's reasoning process explicitly, you encourage the model to break problems into intermediate steps rather than jumping to an answer. This is especially effective for maths, logic, and multi-step planning. Combine it with retrieval-augmented generation (RAG) to ground the model's responses in your own documents or knowledge base, and you have a powerful framework for building reliable AI-powered applications.`,
-      featuredImage: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800',
-      category: 'Artificial Intelligence',
-      tags: ['prompt engineering', 'ai', 'chatgpt', 'llm', 'generative ai'],
-      author: jane._id,
-    },
-    {
-      title: 'The Future of Work: How AI is Reshaping Every Industry',
-      description:
-        'From healthcare to finance to creative fields, AI is transforming how we work. Here's what the research says and how to prepare.',
-      content: `The debate about AI and jobs is often framed as binary — either AI will take all our jobs or it won't. The reality is far more nuanced. AI is best understood as a capability amplifier: it automates specific tasks within jobs, changing the mix of skills required rather than making entire professions obsolete overnight.\n\nIn healthcare, AI-powered diagnostic tools can analyse medical images with superhuman accuracy, freeing radiologists to focus on complex cases and patient communication. In legal services, AI can review thousands of documents in hours, shifting lawyers from drudge work to higher-value counsel. In software engineering, AI coding assistants boost developer productivity by 30–50% on certain tasks — but someone still needs to understand the problem, review the output, and take responsibility for the result.\n\nThe professionals who will thrive are those who learn to collaborate effectively with AI: understanding its strengths and limitations, knowing when to trust its output and when to push back, and focusing their energy on the genuinely human elements of their work — creativity, empathy, ethical judgment, and relationship-building. Rather than fearing automation, now is the time to audit your own skill set, identify which tasks AI can assist with, and invest in the capabilities that remain stubbornly human.`,
-      featuredImage: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800',
-      category: 'Education',
-      tags: ['ai', 'future of work', 'automation', 'careers', 'technology'],
-      author: jane._id,
-    },
-
-    // ── Alex's posts ──────────────────────────────────────────────────────
-    {
-      title: 'Zero-Trust Security: Never Trust, Always Verify',
-      description:
-        'The traditional perimeter-based security model is broken. Zero-Trust architecture is the modern answer — here's how to implement it in your organisation.',
-      content: `For decades, corporate network security was built on a simple assumption: everything inside the network perimeter is trusted, everything outside is not. This model made sense when employees worked in offices and data lived in on-premises servers. Today, with remote work, cloud services, and sophisticated attackers who can move laterally once they breach a perimeter, that assumption is a liability.\n\nZero Trust flips the model on its head. The core principle is "never trust, always verify" — every request, from every user and device, must be authenticated and authorised before being granted access, regardless of whether it originates inside or outside the corporate network. Identity becomes the new perimeter. This means strong multi-factor authentication, least-privilege access policies, continuous session validation, and micro-segmentation that limits how far an attacker can move even if they do get in.\n\nImplementing Zero Trust is a journey, not a one-time project. Start by inventorying your assets and understanding your data flows. Identify your most sensitive data and applications and enforce strict identity controls around them first. Roll out MFA universally, deploy endpoint detection and response (EDR) tools, and implement network segmentation. Tools like Microsoft Entra ID, Google BeyondCorp, and Cloudflare Access provide mature Zero Trust platforms that can accelerate your implementation significantly.`,
-      featuredImage: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800',
-      category: 'Cybersecurity',
-      tags: ['zero trust', 'security', 'networking', 'identity', 'enterprise'],
-      author: alex._id,
-    },
-    {
-      title: 'Common Web Vulnerabilities Every Developer Should Know',
-      description:
-        'SQL injection, XSS, CSRF, SSRF — the OWASP Top 10 explained in plain English with practical examples and mitigations for each.',
-      content: `Security vulnerabilities aren't just an infosec team problem — they're introduced at the development stage, which means developers are on the front lines of prevention. Understanding the most common classes of web vulnerabilities is a fundamental skill for anyone who writes code that runs in production.\n\nSQL Injection remains one of the most prevalent and damaging vulnerabilities. It occurs when untrusted user input is concatenated directly into a database query, allowing attackers to manipulate the query's logic. The fix is straightforward: always use parameterised queries or prepared statements. Never build queries through string concatenation with user-supplied data. Cross-Site Scripting (XSS) is similarly common and equally preventable: always encode user-supplied data before rendering it in HTML, and use a Content Security Policy (CSP) header to restrict which scripts can run on your page.\n\nCross-Site Request Forgery (CSRF) tricks authenticated users into unknowingly submitting requests to your application. Protect against it by validating a secret, user-specific CSRF token on every state-changing request. Server-Side Request Forgery (SSRF) lets attackers coerce your server into making requests to internal resources — validate and allowlist any user-supplied URLs. By understanding these attack patterns deeply, developers can write defensively by default rather than bolting on security as an afterthought.`,
-      featuredImage: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800',
-      category: 'Cybersecurity',
-      tags: ['security', 'owasp', 'web security', 'vulnerabilities', 'development'],
-      author: alex._id,
-    },
-    {
-      title: 'Digital Wellness in the Age of Constant Connectivity',
-      description:
-        'Practical strategies for maintaining mental health, focus, and work-life balance in a world where screens and notifications never stop.',
-      content: `We carry supercomputers in our pockets that connect us to the entire world's information, our colleagues, our friends, and an endless stream of content engineered to capture and hold our attention. The benefits are real — but so are the costs to our focus, sleep, and mental health if we don't establish intentional boundaries.\n\nThe first step is understanding your own usage patterns. Use your phone's built-in screen time tools to get an honest picture of how much time you're spending on different apps and categories. Most people are genuinely surprised. Once you have the data, you can make informed decisions: perhaps social media only after 6pm, or no screens in the bedroom, or phone-free meals. Small, consistent changes compound into significant improvements in wellbeing.\n\nDeep work — the ability to focus without distraction on cognitively demanding tasks — is becoming both rarer and more valuable. Protect it deliberately. Turn off non-essential notifications. Use website blockers during focus sessions. Create physical separation from your devices when you need to think. And remember that rest is productive: adequate sleep, exercise, and time in nature aren't luxuries you earn — they're inputs that determine the quality of your thinking and creativity. In a world of constant connectivity, the ability to disconnect is a superpower.`,
-      featuredImage: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800',
-      category: 'Lifestyle',
-      tags: ['digital wellness', 'mental health', 'productivity', 'focus', 'lifestyle'],
-      author: alex._id,
-    },
-  ].map((p) => ({ ...p, readTime: calcReadTime(p.content) }));
-}
-
-// ── main ─────────────────────────────────────────────────────────────────────
-async function seed() {
+const seed = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI;
-    if (!mongoUri) {
-      throw new Error('MONGO_URI is not defined in backend/.env — aborting seed.');
-    }
-
-    console.log('Connecting to MongoDB…');
-    await mongoose.connect(mongoUri);
-    console.log('MongoDB connected.');
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('MongoDB connected');
 
     // Clear existing data
-    console.log('Clearing existing data…');
-    await Promise.all([User.deleteMany({}), Post.deleteMany({}), Comment.deleteMany({})]);
-    console.log('Collections cleared.');
+    await Comment.deleteMany({});
+    await Post.deleteMany({});
+    await User.deleteMany({});
+    console.log('Cleared existing data');
 
-    // Create users (pre-save hook hashes passwords)
-    console.log('Creating users…');
-    const users = await User.insertMany(
-      await Promise.all(
-        userData.map(async (u) => {
-          const user = new User(u);
-          // Trigger the pre-save hook manually since insertMany bypasses it
-          const salt = await bcrypt.genSalt(12);
-          user.password = await bcrypt.hash(u.password, salt);
-          return user.toObject();
-        })
-      )
-    );
-    console.log(`✓ Created ${users.length} users.`);
+    // Create users (hash passwords manually since insertMany skips pre-save)
+    const hashedPassword = await bcrypt.hash('password123', 12);
 
-    // Build and create posts
-    console.log('Creating posts…');
-    const postData = buildPosts(users);
-    const posts = await Post.insertMany(postData);
-    console.log(`✓ Created ${posts.length} posts.`);
+    const users = await User.insertMany([
+      {
+        fullName: 'John Doe',
+        username: 'johndoe',
+        email: 'john@example.com',
+        password: hashedPassword,
+        bio: 'Full-stack developer and tech writer passionate about web development.',
+        profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john',
+      },
+      {
+        fullName: 'Jane Smith',
+        username: 'janesmith',
+        email: 'jane@example.com',
+        password: hashedPassword,
+        bio: 'AI researcher and blogger exploring the future of technology.',
+        profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jane',
+      },
+      {
+        fullName: 'Alex Johnson',
+        username: 'alexj',
+        email: 'alex@example.com',
+        password: hashedPassword,
+        bio: 'Cybersecurity expert helping organisations stay safe in a digital world.',
+        profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alex',
+      },
+    ]);
 
-    // Create 6 sample comments (spread across first 4 posts)
-    console.log('Creating comments…');
-    const commentData = [
-      {
-        post:    posts[0]._id,
-        user:    users[1]._id,
-        content: 'Great article! TypeScript has completely changed how our team writes code — the autocomplete alone saves hours every week.',
-      },
-      {
-        post:    posts[0]._id,
-        user:    users[2]._id,
-        content: 'Totally agree. The hardest part for us was migrating the existing JavaScript codebase, but it was well worth the effort.',
-      },
-      {
-        post:    posts[1]._id,
-        user:    users[1]._id,
-        content: 'The section on error handling middleware is gold. We\'ve been using a similar pattern and it makes debugging so much cleaner.',
-      },
-      {
-        post:    posts[3]._id,
-        user:    users[0]._id,
-        content: 'Excellent breakdown of the Transformer architecture. The analogy to attention as "relevance weighting" finally made it click for me.',
-      },
-      {
-        post:    posts[6]._id,
-        user:    users[1]._id,
-        content: 'Zero Trust is so important for remote-first companies. We implemented BeyondCorp last year and it\'s been a game changer for our security posture.',
-      },
-      {
-        post:    posts[7]._id,
-        user:    users[0]._id,
-        content: 'Every junior developer should read this before they write their first database query. Parameterised statements are non-negotiable!',
-      },
-    ];
+    const [john, jane, alex] = users;
+    console.log('Users created');
 
-    const comments = await Comment.insertMany(commentData);
-    console.log(`✓ Created ${comments.length} comments.`);
+    const posts = await Post.insertMany([
+      // John's posts
+      {
+        title: 'Getting Started with React 18: Everything You Need to Know',
+        description: 'A comprehensive guide to React 18 new features including concurrent rendering, automatic batching, and the new root API.',
+        content: `React 18 represents the biggest release in years, introducing concurrent rendering as a foundational shift in how React works under the hood. Unlike previous versions where rendering was synchronous and uninterruptible, React 18 can now pause, resume, and abandon renders — enabling a whole new class of user experience improvements.\n\nAutomatic batching is one of the most immediately impactful changes. In React 17, state updates inside setTimeout, Promises, or native event handlers were processed one at a time, causing multiple re-renders. React 18 batches all of these automatically, reducing unnecessary renders and improving performance out of the box.\n\nThe new createRoot API replaces ReactDOM.render and is the entry point to all the concurrent features. Migrating is straightforward: replace ReactDOM.render(app, container) with createRoot(container).render(app). Once you do, you unlock Suspense improvements, startTransition for marking non-urgent updates, and the new useId, useDeferredValue, and useTransition hooks that make building responsive UIs much more intuitive.`,
+        featuredImage: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800',
+        category: 'Web Development',
+        tags: ['react', 'javascript', 'frontend', 'web development'],
+        author: john._id,
+        readTime: 5,
+      },
+      {
+        title: 'Building RESTful APIs with Node.js and Express',
+        description: 'Learn how to design and build production-ready REST APIs using Node.js, Express, and MongoDB with proper authentication.',
+        content: `REST APIs are the backbone of modern web applications, and Node.js with Express is one of the most popular stacks for building them. The combination is fast, flexible, and leverages JavaScript across the full stack — reducing context switching and enabling code sharing between client and server.\n\nA well-designed REST API follows predictable conventions: nouns in URLs rather than verbs, proper HTTP methods (GET for retrieval, POST for creation, PUT for replacement, PATCH for partial updates, DELETE for removal), and meaningful status codes (200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 404 Not Found, 500 Server Error).\n\nSecurity is non-negotiable in production APIs. Always hash passwords with bcrypt, use JWTs with short expiry times and refresh token rotation, validate all incoming data with a library like express-validator, rate-limit authentication endpoints to prevent brute-force attacks, and use helmet to set secure HTTP headers. Add comprehensive error handling middleware that never leaks stack traces to clients, and log everything with a structured logger like Winston or Pino.`,
+        featuredImage: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800',
+        category: 'Programming',
+        tags: ['nodejs', 'express', 'api', 'backend', 'javascript'],
+        author: john._id,
+        readTime: 6,
+      },
+      {
+        title: 'Mastering Tailwind CSS: From Zero to Production',
+        description: 'Deep dive into Tailwind CSS utility-first approach, responsive design, custom themes, and performance optimisation techniques.',
+        content: `Tailwind CSS has fundamentally changed how developers think about styling. Rather than writing custom CSS or fighting framework overrides, you compose designs directly in your markup using small, single-purpose utility classes. The result is a consistent design system with zero specificity wars and no dead CSS.\n\nThe responsive design system in Tailwind is particularly elegant. Every utility can be prefixed with a breakpoint: sm:, md:, lg:, xl:, 2xl: — and because Tailwind is mobile-first, unprefixed classes apply to all sizes while prefixed classes activate at that breakpoint and above. Combined with the grid and flexbox utilities, building fully responsive layouts requires no custom CSS at all.\n\nFor production, always configure your content paths in tailwind.config.js so the CSS purging process can tree-shake unused classes. A development build can be several megabytes; a production build after purging is typically under 20KB. Extend the default theme via the theme.extend key rather than overwriting it, and use the @layer directive to add custom base styles, components, or utilities that integrate cleanly with Tailwind layering system.`,
+        featuredImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
+        category: 'Web Development',
+        tags: ['tailwindcss', 'css', 'frontend', 'design'],
+        author: john._id,
+        readTime: 7,
+      },
 
-    console.log('\n✅ Seed completed successfully!');
-    console.log('\nTest accounts:');
-    console.log('  john@example.com  /  password123');
-    console.log('  jane@example.com  /  password123');
-    console.log('  alex@example.com  /  password123');
+      // Jane's posts
+      {
+        title: 'Introduction to Machine Learning: Core Concepts Explained',
+        description: 'A beginner-friendly introduction to machine learning covering supervised learning, neural networks, and practical applications.',
+        content: `Machine learning is the science of getting computers to learn from data without being explicitly programmed. Instead of writing rules by hand, you feed examples to an algorithm and let it discover the patterns itself. This shift from rule-based to data-driven programming has enabled breakthroughs that would have been impossible with traditional software engineering.\n\nSupervised learning is the most common paradigm: you provide labelled training examples (input-output pairs) and the model learns to predict outputs for new inputs. Classification (predicting a category: spam or not spam, cat or dog) and regression (predicting a number: house price, temperature) are the two main supervised tasks. Algorithms range from simple linear regression to complex deep neural networks with billions of parameters.\n\nUnsupervised learning tackles data without labels, discovering hidden structure through clustering (grouping similar items), dimensionality reduction (finding compact representations), and anomaly detection (identifying unusual examples). Reinforcement learning takes a different approach entirely: an agent learns by taking actions in an environment and receiving rewards or penalties — the same paradigm behind game-playing AIs and robotics. Understanding which learning paradigm fits your problem is the first and most important step in any ML project.`,
+        featuredImage: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800',
+        category: 'Artificial Intelligence',
+        tags: ['machine learning', 'ai', 'data science', 'python'],
+        author: jane._id,
+        readTime: 8,
+      },
+      {
+        title: 'Large Language Models: How GPT and Similar AI Systems Work',
+        description: 'An accessible technical explanation of transformer architecture, attention mechanisms, and how modern LLMs are trained.',
+        content: `Large Language Models like GPT-4 have captured the world imagination, but how do they actually work? At their core, LLMs are trained on the seemingly simple task of predicting the next token given a sequence of previous tokens. Through exposure to vast amounts of text, they develop rich internal representations of language, knowledge, and reasoning patterns.\n\nThe transformer architecture, introduced in the landmark 2017 paper "Attention is All You Need", is the engine powering modern LLMs. The key innovation is the self-attention mechanism, which allows the model to weigh the relevance of every token in the input against every other token — capturing long-range dependencies that previous architectures like RNNs struggled with. Multi-head attention runs this process in parallel with different learned projections, capturing different types of relationships simultaneously.\n\nTraining happens in two phases. Pre-training on hundreds of billions of tokens teaches the model general language understanding. Fine-tuning (often via RLHF — Reinforcement Learning from Human Feedback) aligns the model to be helpful, harmless, and honest. The emergent capabilities that appear as model scale increases — few-shot learning, chain-of-thought reasoning, code generation — remain an active area of research and surprise even the researchers who build these systems.`,
+        featuredImage: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=800',
+        category: 'Artificial Intelligence',
+        tags: ['llm', 'gpt', 'transformers', 'nlp', 'ai'],
+        author: jane._id,
+        readTime: 9,
+      },
+      {
+        title: 'The Future of Work: How AI is Reshaping Every Industry',
+        description: 'From healthcare to finance to creative fields, AI is transforming how we work. What the research says and how to prepare.',
+        content: `The debate about AI and jobs is often framed as binary — either AI will take all jobs or it will not. The reality is far more nuanced. AI is best understood as a capability amplifier: it automates specific tasks within jobs, changing the mix of skills required rather than making entire professions obsolete overnight.\n\nIn healthcare, AI-powered diagnostic tools can analyse medical images with superhuman accuracy, freeing radiologists to focus on complex cases and patient communication. In legal services, AI can review thousands of documents in hours, shifting lawyers from drudge work to higher-value counsel. In software engineering, AI coding assistants boost developer productivity by 30 to 50 percent on certain tasks — but someone still needs to understand the problem, review the output, and take responsibility for the result.\n\nThe professionals who will thrive are those who learn to collaborate effectively with AI: understanding its strengths and limitations, knowing when to trust its output and when to push back, and focusing their energy on the genuinely human elements of their work — creativity, empathy, ethical judgment, and relationship-building. Rather than fearing automation, now is the time to audit your own skill set, identify which tasks AI can assist with, and invest in the capabilities that remain stubbornly human.`,
+        featuredImage: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800',
+        category: 'Education',
+        tags: ['ai', 'future of work', 'automation', 'careers', 'technology'],
+        author: jane._id,
+        readTime: 7,
+      },
+
+      // Alex's posts
+      {
+        title: 'Zero-Trust Security: Never Trust, Always Verify',
+        description: 'The traditional perimeter-based security model is broken. Zero-Trust architecture is the modern answer and here is how to implement it.',
+        content: `The old security model assumed everything inside the corporate network was trustworthy and everything outside was hostile. That assumption is dead. With cloud computing, remote work, and sophisticated phishing attacks, the perimeter has dissolved. Zero-Trust replaces it with a simple principle: never trust, always verify — regardless of whether a request comes from inside or outside the network.\n\nZero-Trust is built on three pillars. Identity is the new perimeter: every user, device, and service must authenticate and be authorised before accessing any resource, using strong multi-factor authentication and least-privilege access control. Network segmentation replaces flat networks with micro-segments, so a compromised device cannot move laterally to access unrelated systems. Continuous monitoring assumes breach at all times, logging all activity and using behavioural analytics to detect anomalies that might indicate an attacker moving through the system.\n\nImplementing Zero-Trust is a journey, not a one-time project. Start with an inventory of users, devices, and applications. Classify data by sensitivity. Implement MFA everywhere — especially for privileged accounts. Deploy an identity provider with conditional access policies. Gradually segment networks and apply application-layer controls. The goal is to make each access decision as granular and verifiable as possible, minimising the blast radius when — not if — something is eventually compromised.`,
+        featuredImage: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800',
+        category: 'Cybersecurity',
+        tags: ['cybersecurity', 'zero-trust', 'security', 'networking'],
+        author: alex._id,
+        readTime: 7,
+      },
+      {
+        title: 'Common Web Vulnerabilities Every Developer Must Know',
+        description: 'Understanding OWASP Top 10 vulnerabilities — SQL injection, XSS, CSRF, and more — with practical prevention techniques.',
+        content: `Security vulnerabilities in web applications cost organisations billions of dollars every year, yet most of the most common vulnerabilities are entirely preventable with awareness and correct coding practices. The OWASP Top 10 is the definitive guide to the most critical web application security risks and essential reading for every developer.\n\nSQL Injection remains one of the most dangerous vulnerabilities despite being well understood. It occurs when user input is concatenated directly into SQL queries, allowing attackers to manipulate the query logic. The fix is always to use parameterised queries or prepared statements — never string concatenation. Cross-Site Scripting (XSS) lets attackers inject malicious scripts into pages viewed by other users, potentially stealing session cookies or performing actions on their behalf. Prevent it by escaping all output and setting a strict Content Security Policy.\n\nCross-Site Request Forgery (CSRF) tricks authenticated users into unknowingly submitting requests to applications they are logged into. Mitigation involves CSRF tokens — unique values tied to the user session that must be present in state-changing requests. Broken authentication manifests as weak passwords, missing MFA, insecure session management, and credential stuffing vulnerabilities. The solution is a battle-tested authentication library rather than rolling your own. Security is a process, not a feature — integrate security reviews, dependency scanning, and penetration testing into your development lifecycle.`,
+        featuredImage: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800',
+        category: 'Cybersecurity',
+        tags: ['security', 'owasp', 'web security', 'vulnerabilities', 'hacking'],
+        author: alex._id,
+        readTime: 8,
+      },
+      {
+        title: 'Digital Wellness: Staying Healthy in a Hyper-Connected World',
+        description: 'Practical strategies for maintaining mental health, focus, and work-life balance in a world where screens and notifications never stop.',
+        content: `The average person now spends over seven hours a day looking at screens, and the always-on nature of smartphones means work, social media, and entertainment blur into a continuous stream of stimulation. The result for many is chronic distraction, disrupted sleep, and a background hum of anxiety. Digital wellness is about intentionally designing your relationship with technology rather than letting it design you.\n\nAttention is your scarcest resource, and every app is competing for it using techniques refined through billions of dollars of behavioural research. Variable reward schedules — the same mechanism that makes slot machines addictive — keep us scrolling for the next interesting post. Notification systems create a Pavlovian response that fragments concentration into ever-smaller pieces. Reclaiming your attention starts with ruthless notification hygiene: allow only people, not apps, to interrupt you. Check social media and email on your schedule, not theirs.\n\nSleep is the foundation of cognitive performance, and screens are its enemy in two ways: the blue light they emit suppresses melatonin production, and the content they deliver — especially social media and news — keeps the brain in a stimulated, vigilant state incompatible with sleep. A simple rule: no screens for 60 minutes before bed. Replace them with reading, journaling, or conversation. The payoff — better sleep, improved focus, reduced anxiety — far outweighs the discomfort of breaking the habit.`,
+        featuredImage: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800',
+        category: 'Lifestyle',
+        tags: ['wellness', 'mental health', 'productivity', 'lifestyle', 'technology'],
+        author: alex._id,
+        readTime: 6,
+      },
+    ]);
+
+    console.log(`${posts.length} posts created`);
+
+    // Add sample comments
+    await Comment.insertMany([
+      {
+        post: posts[0]._id,
+        user: jane._id,
+        content: 'Great introduction to React 18! The section on automatic batching was especially helpful.',
+      },
+      {
+        post: posts[0]._id,
+        user: alex._id,
+        content: 'Really clear explanation. I have been putting off upgrading but this convinced me to finally do it.',
+      },
+      {
+        post: posts[1]._id,
+        user: jane._id,
+        content: 'The security section is gold. Too many tutorials skip JWT best practices entirely.',
+      },
+      {
+        post: posts[3]._id,
+        user: john._id,
+        content: 'Fantastic beginner-friendly overview. The distinction between supervised and unsupervised learning is crystal clear.',
+      },
+      {
+        post: posts[6]._id,
+        user: john._id,
+        content: 'Zero-Trust is long overdue in most organisations. The three-pillars framework makes it very approachable.',
+      },
+      {
+        post: posts[7]._id,
+        user: jane._id,
+        content: 'Every developer should read this before shipping their first feature. Great practical advice.',
+      },
+    ]);
+
+    console.log('Comments created');
+    console.log('\nSeed complete!');
+    console.log('Test accounts:');
+    console.log('  john@example.com  / password123');
+    console.log('  jane@example.com  / password123');
+    console.log('  alex@example.com  / password123');
 
     process.exit(0);
   } catch (err) {
-    console.error('❌ Seed failed:', err.message);
+    console.error('Seed error:', err);
     process.exit(1);
   }
-}
+};
 
 seed();

@@ -1,7 +1,7 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiEdit2, FiMail, FiCalendar, FiBookOpen } from 'react-icons/fi';
-import { AuthContext } from '../context/AuthContext';
+import { FiEdit2, FiCalendar, FiBookOpen } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 import userService from '../services/userService';
 import postService from '../services/postService';
 import BlogCard from '../components/BlogCard';
@@ -10,7 +10,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 export default function Profile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser, updateUser } = useContext(AuthContext);
+  const { user: currentUser, updateUser } = useAuth();
 
   const [profileUser, setProfileUser] = useState(null);
   const [posts, setPosts] = useState([]);
