@@ -4,7 +4,9 @@ import { FiImage, FiTag } from 'react-icons/fi';
 import postService from '../services/postService';
 import { useToast } from '../context/ToastContext';
 
-const CATEGORIES = ['Technology', 'Science', 'Health', 'Business', 'Arts', 'Travel', 'Food'];
+import { ALL_CATEGORIES } from '../components/CategoryFilter';
+
+const CATEGORIES = ALL_CATEGORIES;
 
 const PostForm = ({ initial = {}, onSubmit, loading, submitLabel }) => {
   const [form, setForm] = useState({

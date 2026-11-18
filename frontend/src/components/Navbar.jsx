@@ -3,7 +3,11 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { FiMenu, FiX, FiChevronDown, FiPenTool, FiUser, FiFileText, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
-const CATEGORIES = ['Technology', 'Science', 'Health', 'Business', 'Arts', 'Travel', 'Food'];
+const CATEGORIES = [
+  'Technology', 'Programming', 'Artificial Intelligence', 'Web Development',
+  'Cybersecurity', 'Science', 'Health', 'Business', 'Arts', 'Travel', 'Food',
+  'Lifestyle', 'Education'
+];
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();

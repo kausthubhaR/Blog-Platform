@@ -1,11 +1,16 @@
 import React from 'react';
 
-const CATEGORIES = ['All', 'Technology', 'Science', 'Health', 'Business', 'Arts', 'Travel', 'Food'];
+export const ALL_CATEGORIES = [
+  'Technology', 'Programming', 'Artificial Intelligence', 'Web Development',
+  'Cybersecurity', 'Science', 'Health', 'Business', 'Arts', 'Travel', 'Food',
+  'Lifestyle', 'Education', 'Other',
+];
 
 const CategoryFilter = ({ active = 'All', onSelect }) => {
+  const list = ['All', ...ALL_CATEGORIES];
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-      {CATEGORIES.map((cat) => (
+      {list.map((cat) => (
         <button
           key={cat}
           onClick={() => onSelect && onSelect(cat === 'All' ? '' : cat)}
@@ -23,4 +28,3 @@ const CategoryFilter = ({ active = 'All', onSelect }) => {
 };
 
 export default CategoryFilter;
-

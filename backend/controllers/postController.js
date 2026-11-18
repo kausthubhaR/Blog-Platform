@@ -24,7 +24,8 @@ const getPosts = async (req, res, next) => {
     }
 
     if (category) {
-      query.category = category;
+      const baseCat = category.trim().replace(/s$/i, '');
+      query.category = { $regex: new RegExp(`^${baseCat}s?$`, 'i') };
     }
 
     let sortOption = { createdAt: -1 }; // default: newest first
@@ -229,10 +230,11 @@ const getPostsByCategory = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const total = await Post.countDocuments({
-      category: req.params.category,
-    });
-    const posts = await Post.find({ category: req.params.category })
+    const baseCat = req.params.category.trim().replace(/s$/i, '');
+    const catQuery = { category: { $regex: new RegExp(`^${baseCat}s?$`, 'i') } };
+
+    const total = await Post.countDocuments(catQuery);
+    const posts = await Post.find(catQuery)
       .populate('author', 'fullName username profileImage')
       .sort({ createdAt: -1 })
       .skip(skip)
