@@ -15,6 +15,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import AuthorPosts from './pages/AuthorPosts';
+import About from './pages/About';
 import NotFound from './pages/NotFound';
 
 const App = () => {
@@ -27,17 +28,27 @@ const App = () => {
               <Navbar />
               <main className="flex-grow">
                 <Routes>
+                  {/* Public routes */}
                   <Route path="/" element={<Home />} />
                   <Route path="/explore" element={<Explore />} />
+                  <Route path="/about" element={<About />} />
                   <Route path="/posts/:id" element={<PostDetail />} />
+                  <Route path="/author/:authorId" element={<AuthorPosts />} />
+                  <Route path="/authors/:id" element={<AuthorPosts />} />
+                  <Route path="/profile/:id" element={<Profile />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/login" element={<Login />} />
+
+                  {/* Protected routes */}
                   <Route element={<ProtectedRoute />}>
+                    <Route path="/create-post" element={<CreatePost />} />
                     <Route path="/posts/create" element={<CreatePost />} />
+                    <Route path="/edit-post/:id" element={<EditPost />} />
                     <Route path="/posts/:id/edit" element={<EditPost />} />
                     <Route path="/profile" element={<Profile />} />
                   </Route>
-                  <Route path="/author/:authorId" element={<AuthorPosts />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/login" element={<Login />} />
+
+                  {/* 404 */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

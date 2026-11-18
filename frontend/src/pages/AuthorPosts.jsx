@@ -7,7 +7,8 @@ import BlogCard from '../components/BlogCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function AuthorPosts() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.id || params.authorId;
   const [author, setAuthor] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
